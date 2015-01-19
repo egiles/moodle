@@ -26,9 +26,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
+require_once($CFG->libdir.'/adminlib.php');
 require_once($CFG->libdir.'/cronlib.php');
 
-class cronlib_testcase extends basic_testcase {
+class cronlib_testcase extends advanced_testcase {
 
     /**
      * Data provider for cron_delete_from_temp.
@@ -136,6 +137,31 @@ class cronlib_testcase extends basic_testcase {
         $node->time = $time;
         $node->keep = $keep;
         return $node;
+    }
+
+    /**
+     * Test locking and unlocking the cronlock
+     *
+     */
+    public function test_cronlock() {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        // Initial lock attempt should work
+        $locked = cron_lock();
+        $this->assertTrue($locked);
+
+        // Subsequent lock attempts should fail
+        $notlocked = cron_lock();
+        $this->assertFalse($notlocked);
+
+        // unlock should return true
+        $unlocked = cron_unlock();
+        $this->assertTrue($unlocked);
+
+        // and now we can re lock ...
+        $locked = cron_lock();
+        $this->assertTrue($locked);
     }
 
     /**

@@ -534,10 +534,11 @@ function cron_run() {
  * Note that from moodle 2.7 onwards, this should be implemented using the lock API
  */
 function cron_lock() {
-    return true;
+    $timeout = time() + (60*60*2);
+    return set_cron_lock('cronlock', $timeout);
 }
 function cron_unlock() {
-    return true;
+    return set_cron_lock('cronlock', null);
 }
 
 /**
