@@ -22,6 +22,7 @@
  * @copyright 2010 Sam Hemelryk
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+require_once($CFG->libdir.'/cronlib.php');
 
 /**
  * This is the restore user interface class
@@ -175,6 +176,12 @@ class restore_ui extends base_ui {
         if ($this->stage->get_stage() < self::STAGE_PROCESS) {
             throw new restore_ui_exception('restoreuifinalisedbeforeexecute');
         }
+        // The process of restoring a course has been known to interfere with cron
+        // processing.  Get a lock to prevent race conditions.
+	if (!cron_lock()) {
+            throw new restore_ui_exception('cantgetcronlock');
+        }
+
         if ($this->controller->get_target() == backup::TARGET_CURRENT_DELETING || $this->controller->get_target() == backup::TARGET_EXISTING_DELETING) {
             $options = array();
             $options['keep_roles_and_enrolments'] = $this->get_setting_value('keep_roles_and_enrolments');
@@ -184,6 +191,7 @@ class restore_ui extends base_ui {
         $this->controller->execute_plan();
         $this->progress = self::PROGRESS_EXECUTED;
         $this->stage = new restore_ui_stage_complete($this, $this->stage->get_params(), $this->controller->get_results());
+	cron_unlock();
         return true;
     }
 

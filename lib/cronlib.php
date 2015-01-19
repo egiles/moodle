@@ -39,6 +39,13 @@ function cron_run() {
         exit(1);
     }
 
+    // The process of restoring a course has been known to interfere with cron
+    // processing.  Get a lock to prevent race conditions.
+    if (!cron_lock()) {
+        echo "Cron is locked by another process, cron execution suspended.\n";
+        exit(1);
+    }
+
     require_once($CFG->libdir.'/adminlib.php');
     require_once($CFG->libdir.'/gradelib.php');
 
@@ -509,12 +516,28 @@ function cron_run() {
     $fs = get_file_storage();
     $fs->cron();
 
+    cron_unlock();
     mtrace("Cron script completed correctly");
 
     gc_collect_cycles();
     mtrace('Cron completed at ' . date('H:i:s') . '. Memory used ' . display_size(memory_get_usage()) . '.');
     $difftime = microtime_diff($starttime, microtime());
     mtrace("Execution took ".$difftime." seconds");
+}
+
+/**
+ * Provides a global resource lock for cron
+ *
+ * The process of restoring a course has been known to interfere with cron
+ * processing.  Get a lock to prevent race conditions.
+ *
+ * Note that from moodle 2.7 onwards, this should be implemented using the lock API
+ */
+function cron_lock() {
+    return true;
+}
+function cron_unlock() {
+    return true;
 }
 
 /**
